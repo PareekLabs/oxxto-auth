@@ -166,6 +166,31 @@ function LoginPageContent() {
         setError('');
         setLoading(true);
         try {
+            if (codeChallenge && codeChallengeMethod) {
+                // ── PKCE Authorization Code Flow for Google ──────────────────────
+                const response = await fetch(`${API_URL}/auth/v1/authorize/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idToken,
+                        redirectUri,
+                        codeChallenge,
+                        codeChallengeMethod,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || 'Google login failed');
+                }
+
+                // Redirect to the URL which contains the ?code=...
+                window.location.href = data.redirectUrl;
+                return;
+            }
+
+            // ── Standard Token Flow for Google ──────────────────────
             const response = await fetch(`${API_URL}/auth/v1/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
