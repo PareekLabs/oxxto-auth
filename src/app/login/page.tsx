@@ -1,10 +1,25 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTheme } from '@/lib/useTheme';
 import styles from './login.module.css';
+
+// Type declaration for Google Identity Services
+declare global {
+    interface Window {
+        google?: {
+            accounts: {
+                id: {
+                    initialize: (config: any) => void;
+                    renderButton: (element: HTMLElement, config: any) => void;
+                    prompt: () => void;
+                };
+            };
+        };
+    }
+}
 
 const getApiUrl = () => {
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
@@ -147,10 +162,82 @@ function LoginPageContent() {
         }
     };
 
-    const handleGoogleLogin = () => {
-        // TODO: Implement Google OAuth flow
-        alert('Google login coming soon!');
+    const handleGoogleLogin = async (idToken: string) => {
+        setError('');
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/auth/v1/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || data.error || 'Google login failed');
+            }
+
+            const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
+
+            if (isDesktop && !redirectUri) {
+                // Web app flow — redirect with tokens
+                if (data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URI || 'https://crm.oxxto.com/auth-callback';
+                }
+            } else if (redirectUri) {
+                // Mobile deep link or Flutter web callback
+                localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('refreshToken', data.refreshToken);
+                window.location.href = `${redirectUri}?token=${data.accessToken}&refreshToken=${data.refreshToken}`;
+            } else {
+                localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('refreshToken', data.refreshToken);
+                window.location.href = `https://crm.oxxto.com/#/auth-callback?token=${data.accessToken}&refreshToken=${data.refreshToken}`;
+            }
+        } catch (err: any) {
+            setError(err.message || 'Google login failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    // Load Google Identity Services script
+    const googleButtonRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+            if ((window as any).google && googleButtonRef.current) {
+                (window as any).google.accounts.id.initialize({
+                    client_id: '206451868295-p4uonulqqlt4kqdmqq6mt5jv4vv0eis1.apps.googleusercontent.com',
+                    callback: (response: any) => {
+                        handleGoogleLogin(response.credential);
+                    },
+                });
+                (window as any).google.accounts.id.renderButton(googleButtonRef.current, {
+                    type: 'standard',
+                    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'filled_black' : 'outline',
+                    size: 'large',
+                    width: googleButtonRef.current.offsetWidth,
+                    text: 'continue_with',
+                    shape: 'pill',
+                });
+            }
+        };
+        document.head.appendChild(script);
+        return () => {
+            document.head.removeChild(script);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div className={styles.container}>
@@ -239,19 +326,7 @@ function LoginPageContent() {
                         <span>or</span>
                     </div>
 
-                    <button
-                        type="button"
-                        className={styles.googleButton}
-                        onClick={handleGoogleLogin}
-                    >
-                        <svg width="18" height="18" viewBox="0 0 18 18">
-                            <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" />
-                            <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z" />
-                            <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z" />
-                            <path fill="#EA4335" d="M8.98 3.58c1.16 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.9z" />
-                        </svg>
-                        Continue with Google
-                    </button>
+                    <div ref={googleButtonRef} className={styles.googleButton} style={{ display: 'flex', justifyContent: 'center' }} />
 
                     <div className={styles.registerLink}>
                         <span>Don&apos;t have an account?</span>
