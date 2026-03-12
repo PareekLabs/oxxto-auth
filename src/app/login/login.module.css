@@ -282,38 +282,7 @@
     }
 }
 
-.googleButton {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-    background-color: var(--background);
-    padding: 0.875rem;
-    font-weight: 500;
-    color: var(--foreground);
-    transition: all 0.2s;
-    cursor: pointer;
-}
 
-@media (min-width: 1024px) {
-    .googleButton {
-        background-color: rgba(var(--card-rgb, 255, 255, 255), 0.3);
-    }
-}
-
-@media (prefers-color-scheme: dark) and (min-width: 1024px) {
-    .googleButton {
-        background-color: rgba(0, 0, 0, 0.2);
-    }
-}
-
-.googleButton:hover {
-    background-color: rgba(var(--muted-rgb, 244, 244, 245), 0.5);
-    border-color: var(--muted-foreground);
-}
 
 .registerLink {
     margin-top: 2rem;

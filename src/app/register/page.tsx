@@ -321,7 +321,7 @@ function RegisterPageContent() {
                         <span>or</span>
                     </div>
 
-                    <div ref={googleButtonRef} className={styles.googleButton} style={{ display: 'flex', justifyContent: 'center' }} />
+                    <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center', width: '100%' }} />
 
                     <div className={styles.registerLink}>
                         <span>Already have an account?</span>

@@ -351,7 +351,7 @@ function LoginPageContent() {
                         <span>or</span>
                     </div>
 
-                    <div ref={googleButtonRef} className={styles.googleButton} style={{ display: 'flex', justifyContent: 'center' }} />
+                    <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center', width: '100%' }} />
 
                     <div className={styles.registerLink}>
                         <span>Don&apos;t have an account?</span>
